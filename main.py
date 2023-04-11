@@ -54,6 +54,7 @@ def logout():
 
 
 @app.route('/')
+@app.route('/index')
 def index():
     return render_template('index.html')
 
@@ -65,52 +66,46 @@ def tree():
         cur = db.cursor()
         nulls = cur.execute("""SELECT qid FROM tree WHERE pid IS null""").fetchall()
         for null in nulls:
-            cur.execute("""WITH RECURSIVE
-                        cte(qid, level) AS (
-                            VALUES((?), 0)
-                            UNION ALL
-                            SELECT tree.qid, cte.level+1
-                            FROM tree JOIN cte ON tree.pid = cte.qid
-                            ORDER BY 2 DESC)
-                        SELECT level || ' ' || qid FROM cte""", (null[0], ))
-            a = cur.fetchall()
-            for el in a:
-                el = str(el[0])
-                el = el.split()
-                el = (int(el[0]), int(el[1]))
-                tree.append(el)
-            newTree = []
-            for el in tree:
-                temp = cur.execute("""SELECT text FROM data WHERE qid IS (?)""", (str(el[1]), )).fetchone()
-                newTemp = cur.execute("""SELECT properties FROM tree WHERE qid is (?)""", (str(el[1]), )).fetchone()
-                new = (el[0]+1, temp[0], el[1], newTemp[0])
-                newTree.append(new)
+            level_id = cur.execute("""WITH RECURSIVE
+                            cte(qid, level) AS (
+                                VALUES((?), 0)
+                                UNION ALL
+                                SELECT tree.qid, cte.level+1
+                                FROM tree JOIN cte ON tree.pid = cte.qid
+                                ORDER BY 2 DESC)
+                                SELECT level, qid FROM cte""", (null[0], )).fetchall()
             
-    return render_template('tree.html', a=newTree, maxlevel=max(newTree)[0])
+            level_id = [el for el in level_id]
+            tree = []
+            for el in level_id:
+                temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.qid is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
+                tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВО)
+    return render_template('tree.html', tree=tree)
 
 @app.route('/tree/<int:id>/change', methods=['POST', 'GET'])
 def changeLeaf(id):
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
-        text = cur.execute("""SELECT text FROM data WHERE qid IS (?)""", (id, )).fetchone()
+        properties = list(map(lambda x: x[0], set(cur.execute("""SELECT properties FROM tree """).fetchall())))
+        current_property = cur.execute("""SELECT properties FROM tree WHERE qid IS (?) """, (id, )).fetchone()[0]
+        del properties[properties.index(current_property)]
+        properties.insert(0, current_property)
+        data = cur.execute("""SELECT text FROM data WHERE qid IS (?)""", (id, )).fetchone()
         
     if request.method == "POST":
-        question = request.form['question']
-        answer = request.form['answer']
-        photo = request.form['photo']
-        if len(photo) == 0:
-            photo = None
+        text = request.form['text']
+        property = request.form['button-type']
+
         with sqlite3.connect('data.db') as db:
             cur = db.cursor()
-            cur.execute("""
-                               UPDATE questions
-                        SET  (question, answer, photo)
-                        = ((?), (?), (?))
+            cur.execute("""UPDATE data
+                        SET  (text, properties)
+                        = ((?), (?))
                         WHERE QID is (?) ;
-                        """, (question, answer, photo, id))
+                        """, (text, property, id))
         return redirect('/tree')
     
-    return render_template('changeLeaf.html', text=text)
+    return render_template('changeLeaf.html', data=data, properties=properties)
 
 
 

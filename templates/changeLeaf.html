@@ -7,9 +7,13 @@
 {% block body%}
 <div class="container">
     <form class="row change" method="post">
-        <textarea name="question" type="text" id="question" class="inp" placeholder="Введите текст">{{ text[0] }}</textarea>
-        <textarea name="answer" type="text" id="answer" class="inp" placeholder="Введите текст">{{ text[1] }}</textarea>
-        <textarea name="photo" type="text" id="photo" class="inp" placeholder="Введите URL-адрес картинки">{{ text[2] }}</textarea>
+        <textarea name="text" type="text" id="question" class="inp" placeholder="Введите текст">{{ data[0] }}</textarea>
+        <textarea name="properties" type="text" id="properties" class="inp" placeholder="Введите текст">{{ data[1] }}</textarea>
+        <select name="button-type">
+            {% for property in properties %}
+            <option value={{property}}>{{property}}</option>
+            {% endfor %}
+          </select>
         <input type="submit" value="Изменить">
     </form>
 

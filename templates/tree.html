@@ -10,23 +10,29 @@
     <a href="/logout">Выйти</a>
 </div>
 <hr>
-{% set ns = namespace(prev=a[0][0]) %}
+{% set ns = namespace(prev=tree[0][0]) %}
 
 
 <div class="tree">
     <ul>
-        {% for el in a %}
-            {% if ns.prev < el[0]: %}
-            <ul><li><a href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
-            {% endif %}
+        {% for el in tree %}
             {% if ns.prev == el[0]: %}
-            </li><li><a href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+            </li><li><a class="{{el[3].replace('<', '').replace('>', '').replace(':', '-')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+
             {% endif %}
+
+            {% if ns.prev < el[0]: %}
+            
+            <ul><li><a class="{{el[3].replace('<', '').replace('>', '').replace(':', '-')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+            {% endif %}
+            
             {% if ns.prev > el[0]: %}
+            
                 {% for _ in range(ns.prev - el[0]) %}
                 </li></ul>
                 {% endfor %}
-                <li><a href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+                
+                <li><a class="{{el[3].replace('<', '').replace('>', '').replace(':', '-')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
                 
             {% endif %}
             {% set ns.prev=el[0] %}
