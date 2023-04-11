@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Добавить
+{% endblock %}
+
+{% block body %}
+{% set ns = namespace(prev=tree[0][0]) %}
+<div class="container">
+<h1>Сейчас:</h1>
+<div class="tree">
+    <ul>
+        {% for el in tree %}
+            {% if ns.prev == el[0]: %}
+            </li><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+
+            {% endif %}
+
+            {% if ns.prev < el[0]: %}
+            
+            <ul><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+            {% endif %}
+            
+            {% if ns.prev > el[0]: %}
+            
+                {% for _ in range(ns.prev - el[0]) %}
+                </li></ul>
+                {% endfor %}
+                
+                <li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+                
+            {% endif %}
+            {% set ns.prev=el[0] %}
+        {% endfor %}
+    </ul>
+</div>
+
+<form class="row change" method="post">
+    <textarea name="text" type="text" id="question" class="inp" placeholder="Введите текст элемента"></textarea>
+    <select name="button-type">
+        <option>--Выберите вид элемента--</option>
+        {% for property in properties %}
+        
+        {% if property == '<text>, <ikb>' %}
+        <option value="{{property}}">Текстовый блок с инлайн-кнопками</option>
+        {% endif %}
+        {% if property == '<text>, <kb>' %}
+            <option value="{{property}}">Текстовый блок с обычными кнопками</option>
+            {% endif %}
+
+        {% if property == '<button>' %}
+            <option value={{property}}>Кнопка</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+    <select name="pid">
+        <option>--Выберите элемент-родитель--</option>
+        {% for el in tree %}
+        <option value={{el[2]}}>
+            {% for _ in range(el[0]-1) %}------|{% endfor %}
+            {{el[1]}}</option>
+        {% endfor %}
+    </select>
+
+
+
+    <input type="submit" value="Добавить">
+</form>
+</div>
+{% endblock %}

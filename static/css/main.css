@@ -6,9 +6,9 @@
 .tree ul {
 	display: flex;
 	flex-wrap: nowrap;
-	padding-top: 20px;
+	padding: 20px 0;
 	position: relative;
-
+	justify-content: center;
 	transition: all 0.5s;
 	-webkit-transition: all 0.5s;
 	-moz-transition: all 0.5s;
@@ -113,9 +113,15 @@
 }
 
 .text {
-	border: 1px solid red;
+	border: 1px solid rgb(42, 37, 124);
+	background-color: rgb(243, 245, 115);
 }
 
 .button {
 	border: 1px dotted black;
+}
+
+.delete {
+	font-size: 20px;
+	color: red;
 }

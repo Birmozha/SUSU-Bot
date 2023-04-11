@@ -31,11 +31,11 @@ async def start(message: types.Message):
         prop = prop.split(', ')[1]
         # КОНВЕРТАЦИЯ ID В ТЕКСТ ДЛЯ ОТПРАВКИ СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЮ
         text = cur.execute(
-            """SELECT text FROM data WHERE qid IS (?) """, (qid, )
+            """SELECT text FROM data WHERE id IS (?) """, (qid, )
             ).fetchone()[0]
         # ОТБОР ДОЧЕРНИХ ЭЛЕМЕНТОВ (КНОПОК)
         bid = cur.execute(
-            """SELECT qid FROM TREE WHERE pid IS (?) AND properties is '<button>' """, (qid, )
+            """SELECT qid FROM tree WHERE pid IS (?) AND properties is '<button>' """, (qid, )
             ).fetchall() 
         ikbs = []
         kbs = []
@@ -43,12 +43,12 @@ async def start(message: types.Message):
             # СОЗДАНИЕ СПИСКА ИНЛАЙН-КНОПОК
             if prop == '<ikb>':
                 ikbs.append(cur.execute(
-                    """SELECT text, qid FROM data WHERE qid IS (?) """, (id)
+                    """SELECT text, id FROM data WHERE id IS (?) """, (id)
                     ).fetchone())
             # СОЗДАНИЕ СПИСКА ОБЫЧНЫХ КНОПОК
             elif prop == '<kb>':
                 kbs.append(cur.execute(
-                    """SELECT text FROM data WHERE qid IS (?) """, (id)
+                    """SELECT text FROM data WHERE id IS (?) """, (id)
                     ).fetchone())
     # СОЗДАНИЕ КЛАВИАТУРЫ
     if ikbs:
@@ -83,11 +83,11 @@ async def dialog(callback: types.CallbackQuery, state: FSMContext):
         prop = prop.split(', ')[1]
         # КОНВЕРТАЦИЯ ID В ТЕКСТ ДЛЯ ОТПРАВКИ СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЮ
         text = cur.execute(
-            """SELECT text FROM data WHERE qid IS (?) """, (qid, )
+            """SELECT text FROM data WHERE id IS (?) """, (qid, )
             ).fetchone()[0]
         # ОТБОР ДОЧЕРНИХ ЭЛЕМЕНТОВ (КНОПОК)
         bid = cur.execute(
-            """SELECT qid FROM TREE WHERE pid IS (?) AND properties LIKE '<button%' """, (qid, )
+            """SELECT qid FROM tree WHERE pid IS (?) AND properties LIKE '<button%' """, (qid, )
             ).fetchall()
         ikbs = []
         kbs = []
@@ -95,12 +95,12 @@ async def dialog(callback: types.CallbackQuery, state: FSMContext):
             # СОЗДАНИЕ СПИСКА ИНЛАЙН-КНОПОК
             if prop == '<ikb>':
                 ikbs.append(cur.execute(
-                    """SELECT text, qid FROM data WHERE qid IS (?) """, (id)
+                    """SELECT text, id FROM data WHERE id IS (?) """, (id)
                     ).fetchone())
             # СОЗДАНИЕ СПИСКА ОБЫЧНЫХ КНОПОК
             elif prop == '<kb>':
                 kbs.append(cur.execute(
-                    """SELECT text FROM data WHERE qid IS (?) """, (id)
+                    """SELECT text FROM data WHERE id IS (?) """, (id)
                     ).fetchone())
     
     
@@ -142,7 +142,7 @@ async def dialog(message: types.Message, state: FSMContext):
         ).fetchall()
         for el in pids:
             temp = cur.execute(
-                """SELECT data.qid FROM data, tree WHERE data.text is (?) AND data.qid IS (?) """, (message.text, el[0])
+                """SELECT data.id FROM data, tree WHERE data.text is (?) AND data.id IS (?) """, (message.text, el[0])
             ).fetchone()
             if temp:
                 temp = temp[0]
@@ -154,11 +154,11 @@ async def dialog(message: types.Message, state: FSMContext):
         prop = prop.split(', ')[1]
         # КОНВЕРТАЦИЯ ID В ТЕКСТ ДЛЯ ОТПРАВКИ СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЮ
         text = cur.execute(
-            """SELECT data.text FROM data, tree WHERE data.qid IS (?) AND tree.pid IN (SELECT qid FROM tree WHERE pid is (?)) """, (qid, pid)
+            """SELECT data.text FROM data, tree WHERE data.id IS (?) AND tree.pid IN (SELECT qid FROM tree WHERE pid is (?)) """, (qid, pid)
             ).fetchone()[0]
         # ОТБОР ДОЧЕРНИХ ЭЛЕМЕНТОВ (КНОПОК)
         bid = cur.execute(
-            """SELECT qid FROM TREE WHERE pid IS (?) AND properties LIKE '<button%' """, (qid, )
+            """SELECT qid FROM tree WHERE pid IS (?) AND properties LIKE '<button%' """, (qid, )
             ).fetchall()
         ikbs = []
         kbs = []
@@ -166,12 +166,12 @@ async def dialog(message: types.Message, state: FSMContext):
             # СОЗДАНИЕ СПИСКА ИНЛАЙН-КНОПОК
             if prop == '<ikb>':
                 ikbs.append(cur.execute(
-                    """SELECT text, qid FROM data WHERE qid IS (?) """, (id, )
+                    """SELECT text, id FROM data WHERE id IS (?) """, (id, )
                     ).fetchone())
             # СОЗДАНИЕ СПИСКА ОБЫЧНЫХ КНОПОК
             elif prop == '<kb>':
                 kbs.append(cur.execute(
-                    """SELECT text FROM data WHERE qid IS (?) """, (id, )
+                    """SELECT text FROM data WHERE id IS (?) """, (id, )
                     ).fetchone())
     
     if ikbs:
