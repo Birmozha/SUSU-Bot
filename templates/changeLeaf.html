@@ -9,11 +9,13 @@
     <form class="row change" method="post">
         <textarea name="text" type="text" id="question" class="inp" placeholder="Введите текст">{{ data[0] }}</textarea>
         <textarea name="properties" type="text" id="properties" class="inp" placeholder="Введите текст">{{ data[1] }}</textarea>
+        {% if properties[0] == '<ikb>' or properties[0] == '<kb>': %}
         <select name="button-type">
             {% for property in properties %}
             <option value={{property}}>{{property}}</option>
             {% endfor %}
           </select>
+        {% endif %}
         <input type="submit" value="Изменить">
     </form>
 

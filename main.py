@@ -79,30 +79,45 @@ def tree():
             tree = []
             for el in level_id:
                 temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.qid is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
-                tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВО)
+                temp = (temp[0], tuple(temp[1].split(', ')))
+                tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)
     return render_template('tree.html', tree=tree)
 
 @app.route('/tree/<int:id>/change', methods=['POST', 'GET'])
 def changeLeaf(id):
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
-        properties = list(map(lambda x: x[0], set(cur.execute("""SELECT properties FROM tree """).fetchall())))
-        current_property = cur.execute("""SELECT properties FROM tree WHERE qid IS (?) """, (id, )).fetchone()[0]
-        del properties[properties.index(current_property)]
+        properties = list(map(lambda x: x[0].split(', ')[1], set(cur.execute("""SELECT properties FROM tree WHERE properties LIKE '<text%' """).fetchall())))
+        current_property = (cur.execute("""SELECT properties FROM tree WHERE qid IS (?) """, (id, )).fetchone()[0]).split(', ')
+        if len(current_property) == 2:
+            current_property = current_property[1]
+            del properties[properties.index(current_property)]
         properties.insert(0, current_property)
         data = cur.execute("""SELECT text FROM data WHERE qid IS (?)""", (id, )).fetchone()
         
     if request.method == "POST":
         text = request.form['text']
-        property = request.form['button-type']
-
+        property = None
+        try:
+            if request.form['button-type']:
+                property = '<text>, ' + request.form['button-type']
+        except KeyError:
+            pass
+        
         with sqlite3.connect('data.db') as db:
             cur = db.cursor()
             cur.execute("""UPDATE data
-                        SET  (text, properties)
-                        = ((?), (?))
-                        WHERE QID is (?) ;
-                        """, (text, property, id))
+                            SET  (text)
+                            = ((?))
+                            WHERE QID is (?) ;
+                            """, (text, id))
+            if property:
+                cur.execute("""UPDATE tree
+                                SET  (properties)
+                                = ((?))
+                                WHERE QID is (?) ;
+                                """, (property, id))
+            
         return redirect('/tree')
     
     return render_template('changeLeaf.html', data=data, properties=properties)
