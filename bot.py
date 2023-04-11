@@ -194,6 +194,9 @@ async def dialog(message: types.Message, state: FSMContext):
     else:
         # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
         await message.answer(text=text)
+        
+    async with state.proxy() as st:
+        st['prev'] = qid
 
 
 if __name__ == '__main__':
