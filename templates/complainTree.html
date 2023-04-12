@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Дерево жалоб
+{% endblock %}1
+
+{% block body%}
+
+{% set ns = namespace(prev=tree[0][0]) %}
+
+<div class="container">
+    <div class="full-tree">
+        <ul>
+            {% for el in tree %}
+            {% if ns.prev == el[0]: %}
+            </li>
+            <li>
+                <p class="{{el[3][0].replace('<', '').replace('>', '')}}">{{ el[1] }}</p>
+                {{el[3][0]}}
+
+                {% endif %}
+
+                {% if ns.prev < el[0]: %} <ul>
+            <li>
+                <p class="{{el[3][0].replace('<', '').replace('>', '')}}">{{ el[1] }}</p>
+                {{el[3][0]}}
+                {% endif %}
+
+                {% if ns.prev > el[0]: %}
+
+                {% for _ in range(ns.prev - el[0]) %}
+            </li>
+        </ul>
+        {% endfor %}
+
+        <li>
+            <p class="{{el[3][0].replace('<', '').replace('>', '')}}">{{ el[1] }}</p>
+            {{el[3][0]}}
+
+            {% endif %}
+            {% set ns.prev=el[0] %}
+            {% endfor %}
+            </ul>
+
+    </div>
+    <div>
+        <a href="/complain-tree/add">Добавить элемент</a>
+    </div>
+</div>
+
+{% endblock %}

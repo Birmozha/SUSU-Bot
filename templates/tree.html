@@ -6,10 +6,7 @@
 
 {% block body%}
 <div class="container">
-    <h1>Дерево</h1>
-    <a href="/logout">Выйти</a>
 
-<hr>
 {% set ns = namespace(prev=tree[0][0]) %}
 
 
@@ -17,13 +14,15 @@
     <ul>
         {% for el in tree %}
             {% if ns.prev == el[0]: %}
-            </li><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+            </li><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
+                {{el[3][0]}}
 
             {% endif %}
 
             {% if ns.prev < el[0]: %}
             
-            <ul><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+            <ul><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
+                {{el[3][0]}}
             {% endif %}
             
             {% if ns.prev > el[0]: %}
@@ -32,7 +31,8 @@
                 </li></ul>
                 {% endfor %}
                 
-                <li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/tree/{{el[2]}}/change">{{ el[1] }}</a>
+                <li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
+                    {{el[3][0]}}
                 
             {% endif %}
             {% set ns.prev=el[0] %}
@@ -41,7 +41,7 @@
 </div>
 
 <div>
-    <a href="/tree/add">Добавить элемент</a>
+    <a href="/info-tree/add">Добавить элемент</a>
 </div>
 </div>
 {% endblock %}

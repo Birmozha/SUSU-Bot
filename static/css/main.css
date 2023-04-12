@@ -3,6 +3,10 @@
 	padding: 0;
 }
 
+ul {
+	list-style: none;
+}
+
 .tree ul {
 	display: flex;
 	flex-wrap: nowrap;
@@ -124,4 +128,127 @@
 .delete {
 	font-size: 20px;
 	color: red;
+}
+
+.nav {
+	gap: 30px;
+}
+
+.title {
+	text-align: center;
+}
+
+
+.full-tree {
+	user-select: none;
+}
+
+.full-tree ul {
+	display: flex;
+	flex-wrap: nowrap;
+	padding: 20px 0;
+	position: relative;
+	justify-content: center;
+	transition: all 0.5s;
+	-webkit-transition: all 0.5s;
+	-moz-transition: all 0.5s;
+}
+
+.full-tree li {
+	float: left;
+	text-align: center;
+	list-style-type: none;
+	position: relative;
+	padding: 20px 5px 0 5px;
+
+	transition: all 0.5s;
+	-webkit-transition: all 0.5s;
+	-moz-transition: all 0.5s;
+}
+
+.full-tree li::before,
+.full-tree li::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	right: 50%;
+	border-top: 1px solid #ccc;
+	width: 50%;
+	height: 20px;
+}
+
+.full-tree li::after {
+	right: auto;
+	left: 50%;
+	border-left: 1px solid #ccc;
+}
+
+.full-tree li:only-child::after,
+.full-tree li:only-child::before {
+	display: none;
+}
+
+.full-tree li:only-child {
+	padding-top: 0;
+}
+
+.full-tree li:first-child::before,
+.full-tree li:last-child::after {
+	border: 0 none;
+}
+
+.full-tree li:last-child::before {
+	border-right: 1px solid #ccc;
+	border-radius: 0 5px 0 0;
+	-webkit-border-radius: 0 5px 0 0;
+	-moz-border-radius: 0 5px 0 0;
+}
+
+.full-tree li:first-child::after {
+	border-radius: 5px 0 0 0;
+	-webkit-border-radius: 5px 0 0 0;
+	-moz-border-radius: 5px 0 0 0;
+}
+
+.full-tree ul ul::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 50%;
+	border-left: 1px solid #ccc;
+	width: 0;
+	height: 20px;
+}
+
+.full-tree li p {
+	/* border: 1px solid #ccc; */
+	padding: 10px 15px;
+	text-decoration: none;
+	color: #666;
+	font-family: arial, verdana, tahoma;
+	font-size: 20px;
+	display: inline-block;
+	margin-bottom: 0;
+
+	border-radius: 15px;
+	-webkit-border-radius: 15px;
+	-moz-border-radius: 15px;
+
+	transition: all 0.5s;
+	-webkit-transition: all 0.5s;
+	-moz-transition: all 0.5s;
+}
+
+.full-tree li p:hover,
+.full-tree li p:hover+ul li p {
+	background: #c8e4f8;
+	color: #000;
+	border: 1px solid #94a0b4;
+}
+
+.full-tree li p:hover+ul li::after,
+.full-tree li p:hover+ul li::before,
+.full-tree li p:hover+ul::before,
+.full-tree li p:hover+ul ul::before {
+	border-color: #94a0b4;
 }

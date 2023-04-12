@@ -12,13 +12,13 @@
     <ul>
         {% for el in tree %}
             {% if ns.prev == el[0]: %}
-            </li><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
+            </li><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/complain-tree/{{el[2]}}/change">{{ el[1] }}</a>
 
             {% endif %}
 
             {% if ns.prev < el[0]: %}
             
-            <ul><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
+            <ul><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/complain-tree/{{el[2]}}/change">{{ el[1] }}</a>
             {% endif %}
             
             {% if ns.prev > el[0]: %}
@@ -27,7 +27,7 @@
                 </li></ul>
                 {% endfor %}
                 
-                <li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
+                <li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/complain-tree/{{el[2]}}/change">{{ el[1] }}</a>
                 
             {% endif %}
             {% set ns.prev=el[0] %}
@@ -37,19 +37,22 @@
 
 <form class="row change" method="post">
     <textarea name="text" type="text" id="question" class="inp" placeholder="Введите текст элемента"></textarea>
-    <select name="button-type">
+    <select name="block-type">
         <option>--Выберите вид элемента--</option>
         {% for property in properties %}
         
-        {% if property == '<text>, <ikb>' %}
-        <option value="{{property}}">Текстовый блок с инлайн-кнопками</option>
+        {% if property == '<text>, <choosecat>' %}
+        <option value="{{property}}">Текстовый блок с ожиданием выбора кнопки</option>
         {% endif %}
-        {% if property == '<text>, <kb>' %}
-            <option value="{{property}}">Текстовый блок с обычными кнопками</option>
+        {% if property == '<button>' %}
+            <option value="{{property}}">Кнопка выбора</option>
+            {% endif %}
+        {% if property == '<text>, <waittext>' %}
+            <option value="{{property}}">Текстовый блок с ожиданием ввода текста от пользователя</option>
             {% endif %}
 
-        {% if property == '<button>' %}
-            <option value={{property}}>Кнопка</option>
+        {% if property == '<text>, <waitphoto>' %}
+            <option value={{property}}>Текстовый блок с ожиданием фотографии от пользователя</option>
             {% endif %}
         {% endfor %}
     </select>
