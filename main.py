@@ -15,6 +15,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 users = {'a1': {'password': 'pass1'},
          'a2': {'password': 'pass2'}}
