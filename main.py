@@ -64,23 +64,22 @@ def tree():
     tree = []
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
-        nulls = cur.execute("""SELECT qid FROM tree WHERE pid IS null""").fetchall()
-        for null in nulls:
-            level_id = cur.execute("""WITH RECURSIVE
-                            cte(qid, level) AS (
-                                VALUES((?), 0)
-                                UNION ALL
-                                SELECT tree.qid, cte.level+1
-                                FROM tree JOIN cte ON tree.pid = cte.qid
-                                ORDER BY 2 DESC)
-                                SELECT level, qid FROM cte""", (null[0], )).fetchall()
-            
-            level_id = [el for el in level_id]
-            tree = []
-            for el in level_id:
-                temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.id is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
-                temp = (temp[0], tuple(temp[1].split(', ')))
-                tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)
+        null = cur.execute("""SELECT qid FROM tree WHERE pid IS null""").fetchone()[0]
+        level_id = cur.execute("""WITH RECURSIVE
+                        cte(qid, level) AS (
+                            VALUES((?), 0)
+                            UNION ALL
+                            SELECT tree.qid, cte.level+1
+                            FROM tree JOIN cte ON tree.pid = cte.qid
+                            ORDER BY 2 DESC)
+                            SELECT level, qid FROM cte""", (null, )).fetchall()
+        
+        level_id = [el for el in level_id]
+        tree = []
+        for el in level_id:
+            temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.id is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
+            temp = (temp[0], tuple(temp[1].split(', ')))
+            tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)
     return render_template('tree.html', tree=tree)
 
 @app.route('/tree/<int:id>/change', methods=['POST', 'GET'])
