@@ -135,6 +135,7 @@ def changeLeaf(id):
         
         with sqlite3.connect('data.db') as db:
             cur = db.cursor()
+            db.execute("""BEGIN TRANSACTION""")
             cur.execute("""UPDATE data
                             SET  (text)
                             = ((?))
@@ -146,7 +147,7 @@ def changeLeaf(id):
                                 = ((?))
                                 WHERE id IS (?) ;
                                 """, (property, id))
-            
+            db.execute("""END TRANSACTION""")
         return redirect('/info-tree')
     
     return render_template('changeLeaf.html', data=data, properties=properties, id=id)
@@ -159,15 +160,10 @@ def changeLeaf(id):
 def deleteLeaf(id):
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
+        db.execute("""PRAGMA foreign_keys = ON""")
+        db.execute("""BEGIN TRANSACTION""")
         cur.execute("""DELETE FROM tree WHERE qid is (?) """, (id, ))
-        cur.execute("""DELETE FROM data WHERE id is (?) """, (id, ))
-        need_to_delete = cur.execute("""SELECT qid FROM tree WHERE pid is (?) """, (id, )).fetchall()
-        print(need_to_delete)
-        cur.execute("""DELETE FROM tree WHERE pid is (?) """, (id, ))
-        for el in need_to_delete:
-            print(el)
-            cur.execute("""DELETE FROM data WHERE id is (?) """, (el))
-        
+        db.execute("""END TRANSACTION""")
     return redirect('/info-tree')
 
 
