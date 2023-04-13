@@ -247,8 +247,13 @@ async def waitPhoto(message: types.Message, state: FSMContext):
             # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
             await message.answer(text=text)
         
+        async with state.proxy() as st:
+            st['prev'] = qid
+        
     else:
         await message.reply(text='Пожалуйста, пришлите фото')
+    
+    
 
 @dp.message_handler(state=ComplainStates.wait_text)
 async def waitText(message: types.Message, state: FSMContext):
