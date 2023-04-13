@@ -266,6 +266,28 @@ async def waitText(message: types.Message, state: FSMContext):
                         SELECT qid FROM tree WHERE pid is (?)
                         """, (pid, )).fetchall()
         if not next:
+            async with state.proxy() as st:
+                t = st['complain']
+                photo_path = st['photo_path']
+                photo_name = st['photo_name']
+            addr_from = MAIL_BOX
+            addr_to = MAIL_BOX
+            msg = MIMEMultipart()
+            msg['From'] = addr_from
+            msg['To'] = addr_to
+            msg['Subject'] = f'Новая жалоба: {t[0]}'
+            body = (f'''--{t[1]}--''')
+            msg.attach(MIMEText(body, 'plain'))
+            # await asyncio.sleep(1)
+            with open(f'{photo_path}', 'rb') as fp:
+                img = MIMEImage(fp.read())
+                img.add_header('Content-Disposition', 'attachment', filename=f"{photo_name}")
+                msg.attach(img)
+            smtpObj = smtplib.SMTP('smtp.mail.ru')
+            smtpObj.starttls()
+            smtpObj.login(addr_from, MAIL_PASSWORD)
+            smtpObj.send_message(msg)
+            smtpObj.quit()
             await state.finish()
             return await message.answer(text='Спасибо, ваша жалоба сохранена')
         qid, prop = cur.execute(
