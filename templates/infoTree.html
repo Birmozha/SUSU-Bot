@@ -15,14 +15,14 @@
         {% for el in tree %}
             {% if ns.prev == el[0]: %}
             </li><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
-                {{el[3][0]}}
+
 
             {% endif %}
 
             {% if ns.prev < el[0]: %}
             
             <ul><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
-                {{el[3][0]}}
+
             {% endif %}
             
             {% if ns.prev > el[0]: %}
@@ -32,7 +32,7 @@
                 {% endfor %}
                 
                 <li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
-                    {{el[3][0]}}
+
                 
             {% endif %}
             {% set ns.prev=el[0] %}

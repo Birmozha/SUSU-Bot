@@ -40,20 +40,7 @@
     <select name="block-type">
         <option>--Выберите вид элемента--</option>
         {% for property in properties %}
-        
-        {% if property == '<text>, <choosecat>' %}
-        <option value="{{property}}">Текстовый блок с ожиданием выбора кнопки</option>
-        {% endif %}
-        {% if property == '<button>' %}
-            <option value="{{property}}">Кнопка выбора</option>
-            {% endif %}
-        {% if property == '<text>, <waittext>' %}
-            <option value="{{property}}">Текстовый блок с ожиданием ввода текста от пользователя</option>
-            {% endif %}
-
-        {% if property == '<text>, <waitphoto>' %}
-            <option value={{property}}>Текстовый блок с ожиданием фотографии от пользователя</option>
-            {% endif %}
+            <option value="{{property[0]}}">{{property[1]}}</option>
         {% endfor %}
     </select>
     <select name="pid">

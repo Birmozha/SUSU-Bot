@@ -40,17 +40,7 @@
     <select name="button-type">
         <option>--Выберите вид элемента--</option>
         {% for property in properties %}
-        
-        {% if property == '<text>, <ikb>' %}
-        <option value="{{property}}">Текстовый блок с инлайн-кнопками</option>
-        {% endif %}
-        {% if property == '<text>, <kb>' %}
-            <option value="{{property}}">Текстовый блок с обычными кнопками</option>
-            {% endif %}
-
-        {% if property == '<button>' %}
-            <option value={{property}}>Кнопка</option>
-            {% endif %}
+            <option value="{{property[0]}}">{{property[1]}}</option>
         {% endfor %}
     </select>
     <select name="pid">

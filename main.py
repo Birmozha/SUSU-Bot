@@ -109,30 +109,31 @@ def info_tree():
             temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.id is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
             temp = (temp[0], tuple(temp[1].split(', ')))
             tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)
-    return render_template('tree.html', tree=tree)
+    return render_template('infoTree.html', tree=tree)
 
 @app.route('/info-tree/<int:id>/change', methods=['POST', 'GET'])
 @login_required
 def changeLeaf(id):
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
-        properties = list(map(lambda x: x[0].split(', ')[1], set(cur.execute("""SELECT properties FROM tree WHERE properties LIKE '<text%' """).fetchall())))
-        current_property = (cur.execute("""SELECT properties FROM tree WHERE qid IS (?) """, (id, )).fetchone()[0]).split(', ')
-        if len(current_property) == 2:
-            current_property = current_property[1]
-            del properties[properties.index(current_property)]
-        properties.insert(0, current_property)
+        props = cur.execute("""SELECT prop FROM properties WHERE category is (?) """, (2, )).fetchone()[0].split(' | ')
+        properties = []
+        for el in props:
+            if el != '<button>':
+                temp = (el, cur.execute("""SELECT text FROM properties_text WHERE prop is (?) """, (el, )).fetchone()[0])
+                properties.append(temp)
+        current_property = (cur.execute("""SELECT properties FROM tree WHERE qid IS (?) """, (id, )).fetchone()[0])
+        current_property = (current_property, (cur.execute("""SELECT text FROM properties_text WHERE prop IS (?) """, (current_property, )).fetchone()[0]))
         data = cur.execute("""SELECT text FROM data WHERE id IS (?)""", (id, )).fetchone()
         
     if request.method == "POST":
         text = request.form['text']
         property = None
         try:
-            if request.form['button-type']:
-                property = '<text>, ' + request.form['button-type']
+            if request.form['button-type'] and request.form['button-type'] != '-':
+                property = request.form['button-type']
         except KeyError:
             pass
-        
         with sqlite3.connect('data.db') as db:
             cur = db.cursor()
             db.execute("""BEGIN TRANSACTION""")
@@ -145,12 +146,12 @@ def changeLeaf(id):
                 cur.execute("""UPDATE tree
                                 SET  (properties)
                                 = ((?))
-                                WHERE id IS (?) ;
+                                WHERE qid IS (?) ;
                                 """, (property, id))
             db.execute("""END TRANSACTION""")
         return redirect('/info-tree')
     
-    return render_template('changeLeaf.html', data=data, properties=properties, id=id)
+    return render_template('changeLeaf.html', data=data, properties=properties, current_property=current_property, id=id)
 
 
 
@@ -165,6 +166,17 @@ def deleteLeaf(id):
         cur.execute("""DELETE FROM tree WHERE qid is (?) """, (id, ))
         db.execute("""END TRANSACTION""")
     return redirect('/info-tree')
+
+@app.route('/complain-tree/delete/<int:id>')
+@login_required
+def deleteComplainLeaf(id):
+    with sqlite3.connect('data.db') as db:
+        cur = db.cursor()
+        db.execute("""PRAGMA foreign_keys = ON""")
+        db.execute("""BEGIN TRANSACTION""")
+        cur.execute("""DELETE FROM tree WHERE qid is (?) """, (id, ))
+        db.execute("""END TRANSACTION""")
+    return redirect('/complain-tree')
 
 
 @app.route('/info-tree/add', methods=['POST', 'GET'])
@@ -190,8 +202,11 @@ def addLeaf():
             temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.id is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
             temp = (temp[0], tuple(temp[1].split(', ')))
             tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)
-        properties = list(map(lambda x: x[0], set(cur.execute("""SELECT properties FROM tree""").fetchall())))
-        
+        props = cur.execute("""SELECT prop FROM properties WHERE category is (?) """, (cats[0][0], )).fetchone()[0].split(' | ')
+        properties = []
+        for el in props:
+            temp = (el, cur.execute("""SELECT text FROM properties_text WHERE prop is (?) """, (el, )).fetchone()[0])
+            properties.append(temp)
         
     if request.method == 'POST':
         text = request.form['text']
@@ -217,6 +232,48 @@ def addLeaf():
     return render_template('addLeaf.html', tree=tree, properties=properties)
 
 
+@app.route('/complain-tree/<int:id>/change', methods=['POST', 'GET'])
+@login_required
+def changeComplainTree(id):
+    with sqlite3.connect('data.db') as db:
+        cur = db.cursor()
+        props = cur.execute("""SELECT prop FROM properties WHERE category is (?) """, (17, )).fetchone()[0].split(' | ')
+        properties = []
+        for el in props:
+            temp = (el, cur.execute("""SELECT text FROM properties_text WHERE prop is (?) """, (el, )).fetchone()[0])
+            properties.append(temp)
+        current_property = (cur.execute("""SELECT properties FROM tree WHERE qid IS (?) """, (id, )).fetchone()[0])
+        current_property = (current_property, (cur.execute("""SELECT text FROM properties_text WHERE prop IS (?) """, (current_property, )).fetchone()[0]))
+        data = cur.execute("""SELECT text FROM data WHERE id IS (?)""", (id, )).fetchone()
+        
+    if request.method == "POST":
+        text = request.form['text']
+        property = None
+        try:
+            if request.form['button-type'] and request.form['button-type'] != '-':
+                property = request.form['button-type']
+        except KeyError:
+            pass
+        with sqlite3.connect('data.db') as db:
+            cur = db.cursor()
+            db.execute("""BEGIN TRANSACTION""")
+            cur.execute("""UPDATE data
+                            SET  (text)
+                            = ((?))
+                            WHERE id IS (?) ;
+                            """, (text, id))
+            if property:
+                cur.execute("""UPDATE tree
+                                SET  (properties)
+                                = ((?))
+                                WHERE qid IS (?) ;
+                                """, (property, id))
+            db.execute("""END TRANSACTION""")
+        return redirect('/complain-tree')
+    
+    return render_template('changeComplainLeaf.html', data=data, properties=properties, current_property=current_property, id=id)
+
+
 @app.route('/complain-tree')
 @login_required
 def complain_tree():
@@ -239,8 +296,8 @@ def complain_tree():
         for el in level_id:
             temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.id is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
             temp = (temp[0], tuple(temp[1].split(', ')))
-            tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)    
-    return render_template('complainTree.html',tree=tree)
+            tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)
+    return render_template('complainTree.html', tree=tree)
 
 @app.route('/complain-tree/add', methods=['POST', 'GET'])
 @login_required
@@ -265,8 +322,13 @@ def addComplainLeaf():
             temp = cur.execute("""SELECT data.text, tree.properties FROM data, tree WHERE data.id is (?) AND tree.qid IS (?)""", (el[1], el[1])).fetchone()
             temp = (temp[0], tuple(temp[1].split(', ')))
             tree.append((el[0]+1, temp[0], el[1], temp[1])) # (УРОВЕНЬ, ТЕКСТ, НОМЕР, СВОЙСТВА)
-        properties = list(map(lambda x: x[0], set(cur.execute("""SELECT properties FROM tree""").fetchall())))
         
+        props = cur.execute("""SELECT prop FROM properties WHERE category is (?) """, (cats[1][0], )).fetchone()[0].split(' | ')
+        properties = []
+        for el in props:
+            temp = (el, cur.execute("""SELECT text FROM properties_text WHERE prop is (?) """, (el, )).fetchone()[0])
+            properties.append(temp)
+            
         
     if request.method == 'POST':
         text = request.form['text']
