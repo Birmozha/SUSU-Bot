@@ -6,10 +6,11 @@
 
 {% block body%}
 <div class="container">
-<form class="row" method="post">
+<div class="login">
+<form class="row login-form" method="post">
     <input name="username" id="username" type="text" class="inp">
-    <input name="password" id="password" type="text" calss="inp">
-    <input type="submit" value="Войти">
+    <input name="password" id="password" type="password" calss="inp">
+    <input class="submit-button" type="submit" value="Войти">
 </form>
 </div>
 {% endblock %}

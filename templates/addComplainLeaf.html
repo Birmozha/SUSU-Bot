@@ -7,7 +7,31 @@
 {% block body %}
 {% set ns = namespace(prev=tree[0][0]) %}
 <div class="container">
-<h1>Сейчас:</h1>
+    <div class="change-form">
+        <form class="row change" method="post">
+            <textarea name="text" type="text" id="question" class="inp" placeholder="Введите текст элемента"></textarea>
+            <select name="block-type">
+                <option>--Выберите вид элемента--</option>
+                {% for property in properties %}
+                    <option value="{{property[0]}}">{{property[1]}}</option>
+                {% endfor %}
+            </select>
+            <select name="pid">
+                <option>--Выберите элемент-родитель--</option>
+                {% for el in tree %}
+                <option value={{el[2]}}>
+                    {% for _ in range(el[0]-1) %}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{% endfor %} ↳
+                    {{el[1]}}</option>
+                {% endfor %}
+            </select>
+        
+        
+        
+            <input type="submit" value="Добавить">
+        </form>
+        </div>
+
+<h1 class="now">Сейчас</h1>
 <div class="tree">
     <ul>
         {% for el in tree %}
@@ -34,27 +58,5 @@
         {% endfor %}
     </ul>
 </div>
-
-<form class="row change" method="post">
-    <textarea name="text" type="text" id="question" class="inp" placeholder="Введите текст элемента"></textarea>
-    <select name="block-type">
-        <option>--Выберите вид элемента--</option>
-        {% for property in properties %}
-            <option value="{{property[0]}}">{{property[1]}}</option>
-        {% endfor %}
-    </select>
-    <select name="pid">
-        <option>--Выберите элемент-родитель--</option>
-        {% for el in tree %}
-        <option value={{el[2]}}>
-            {% for _ in range(el[0]-1) %}------|{% endfor %}
-            {{el[1]}}</option>
-        {% endfor %}
-    </select>
-
-
-
-    <input type="submit" value="Добавить">
-</form>
 </div>
 {% endblock %}

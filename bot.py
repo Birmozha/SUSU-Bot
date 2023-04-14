@@ -27,6 +27,11 @@ MAIL_BOX = os.environ.get('MAIL_BOX')
 MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
 
+choose_cat_text = 'Выбери категорию!'
+
+cat_button_text = '<< К категориям'
+cat_button = KeyboardButton(text=cat_button_text)
+
 back_button_text = '<< Назад'
 back_button = KeyboardButton(text=back_button_text)
 
@@ -512,6 +517,55 @@ async def dialog(callback: types.CallbackQuery, state: FSMContext):
     async with state.proxy() as st:
         st['prev'] = qid
 
+
+@dp.message_handler(Text(equals=cat_button_text), state=InfoStates.dialog)
+async def goCat(message: types.Message, state: FSMContext):
+    await state.finish()
+    with sqlite3.connect('data.db') as db:
+        cur = db.cursor()
+        # ОТБОР ID ПЕРВОГО ЭЛЕМЕНТА ИЗ БАЗЫ ДАННЫХ
+        qid, prop = cur.execute(
+            """SELECT qid, properties FROM tree WHERE pid IS NULL AND properties LIKE '<text>%' """
+            ).fetchall()[0]
+        prop = prop.split(', ')[1]
+        # КОНВЕРТАЦИЯ ID В ТЕКСТ ДЛЯ ОТПРАВКИ СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЮ
+        # ОТБОР ДОЧЕРНИХ ЭЛЕМЕНТОВ (КНОПОК)
+        bid = cur.execute(
+            """SELECT qid FROM tree WHERE pid IS (?) AND properties is '<button>' """, (qid, )
+            ).fetchall() 
+        ikbs = []
+        kbs = []
+        for id in bid:
+            # СОЗДАНИЕ СПИСКА ИНЛАЙН-КНОПОК
+            if prop == '<ikb>':
+                ikbs.append(cur.execute(
+                    """SELECT text, id FROM data WHERE id IS (?) """, (id)
+                    ).fetchone())
+            # СОЗДАНИЕ СПИСКА ОБЫЧНЫХ КНОПОК
+            elif prop == '<kb>':
+                kbs.append(cur.execute(
+                    """SELECT text FROM data WHERE id IS (?) """, (id)
+                    ).fetchone())
+    
+    # СОЗДАНИЕ КЛАВИАТУРЫ
+    if ikbs:
+        buttonsText = [button for button in ikbs] # СОЗДАНИЕ СПИСКА ТИПА [('Text', ID), ('Text', ID), ...]
+        # СОЗДАНИЕ КЛАВИАТУРЫ КЛАССА Inline
+        kb = InlineKeyboardMarkup(row_width=1
+                                  ).add(*[InlineKeyboardButton(text=text, callback_data=qid) for text, qid in buttonsText]) # ДОБАВЛЕНИЕ КНОПОК
+        await message.answer(text=choose_cat_text, reply_markup=kb)
+    elif kbs:
+        buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
+        # СОЗДАНИЕ КЛАВИАТУРЫ КЛАССА Reply
+        kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True
+                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]) #ДОБАВЛЕНИЕ КНОПОК
+        # ОТПРАВКА СООБЩЕНИЯ БОТОМ
+        await message.answer(text=choose_cat_text,
+                             reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
+    else:
+        # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
+        await message.answer(text=choose_cat_text)
+
 @dp.message_handler(Text(equals=back_button_text), state=InfoStates.dialog)
 async def goBack(message: types.Message, state: FSMContext):
     async with state.proxy() as st:
@@ -546,7 +600,6 @@ async def goBack(message: types.Message, state: FSMContext):
 async def dialog(message: types.Message, state: FSMContext):
     async with state.proxy() as st:
         pid = st['prev']
-
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
         # НАХОЖДЕНИЕ ID ПОЛУЧЕННОГО ТЕКСТОВОГО СООБЩЕНИЯ (ВОПРОСА)
@@ -555,11 +608,12 @@ async def dialog(message: types.Message, state: FSMContext):
         ).fetchall()
         for el in pids:
             temp = cur.execute(
-                """SELECT data.id FROM data, tree WHERE data.text is (?) AND data.id IS (?) """, (message.text, el[0])
+                """SELECT id FROM data WHERE text is (?) AND id IS (?) """, (message.text, el[0])
             ).fetchone()
             if temp:
                 temp = temp[0]
                 break
+        
         # ОТБОР ИЗ БАЗЫ ДАННЫХ ДОЧЕРНЕГО ID ЭЛЕМЕНТА К ID ТЕКСТОВОГО СООБЩЕНИЯ
         qid, prop = cur.execute(
             """SELECT qid, properties FROM tree WHERE pid IS (?) and properties LIKE '<text>%' """, (temp, )
@@ -599,15 +653,14 @@ async def dialog(message: types.Message, state: FSMContext):
     elif kbs:
         buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
         # СОЗДАНИЕ КЛАВИАТУРЫ
-        kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True
-                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]).add(back_button) # ДОБАВЛЕНИЕ КНОПОК
+        kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=1
+                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]).add(back_button).add(cat_button) # ДОБАВЛЕНИЕ КНОПОК
         # ОТПРАВКА СООБЩЕНИЯ БОТОМ
         await message.answer(text=text,
                              reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
     else:
         # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
         await message.answer(text=text)
-        
     async with state.proxy() as st:
         st['prev'] = qid
 

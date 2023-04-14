@@ -16,7 +16,6 @@
             {% if ns.prev == el[0]: %}
             </li><li><a class="{{el[3][0].replace('<', '').replace('>', '')}}" href="/info-tree/{{el[2]}}/change">{{ el[1] }}</a>
 
-
             {% endif %}
 
             {% if ns.prev < el[0]: %}
@@ -40,8 +39,8 @@
     </ul>
 </div>
 
-<div>
-    <a href="/info-tree/add">Добавить элемент</a>
+<div class="add">
+    <a class="add-button" href="/info-tree/add">Добавить элемент</a>
 </div>
 </div>
 {% endblock %}

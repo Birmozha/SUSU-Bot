@@ -52,7 +52,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return render_template('login.html')
+    return redirect('/login')
 
 
 
