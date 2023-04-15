@@ -9,7 +9,8 @@
 {% set ns = namespace(prev=tree[0][0]) %}
 
 <div class="container">
-    <div class="tree">
+    <div class="tree-button-block"><button class="tree-button" id="toggle-tree">Изменить вид</button></div>
+    <div class="tree" id="tree">
         <ul>
             {% for el in tree %}
                 {% if ns.prev == el[0]: %}

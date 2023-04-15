@@ -28,7 +28,8 @@
         </form>
         </div>
 <h1 class="now">Сейчас</h1>
-<div class="tree">
+<div class="tree-button-block"><button class="tree-button" id="toggle-tree">Изменить вид</button></div>
+<div class="tree" id="tree">
     <ul>
         {% for el in tree %}
             {% if ns.prev == el[0]: %}
