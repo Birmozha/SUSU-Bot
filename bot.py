@@ -142,6 +142,7 @@ async def additionals(message: types.Message, state: FSMContext):
             await ComplainStates.wait_choose.set()
         elif prop == '<waitphoto>':
             await ComplainStates.wait_photo.set()
+            cure = await state.get_state()
         elif prop == '<waittext>':
             await ComplainStates.wait_text.set()
         elif prop == '<additionals>':
@@ -170,7 +171,8 @@ async def additionals(message: types.Message, state: FSMContext):
         await message.answer(text=text,
                              reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
     else:
-        await state.finish()
+        if prop == '<additionals>':
+            await state.finish()
         # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
         await message.answer(text=text)
         
@@ -241,6 +243,7 @@ async def waitText(message: types.Message, state: FSMContext):
 
 @dp.message_handler(content_types=['any'], state=ComplainStates.wait_photo)
 async def waitPhoto(message: types.Message, state: FSMContext):
+    cure = await state.get_state()
     async with state.proxy() as st:
         pid = st['prev']
         cat = st['complain'][0]
@@ -257,7 +260,7 @@ async def waitPhoto(message: types.Message, state: FSMContext):
                         """, (pid, )).fetchall()
             if not next:
                 async with state.proxy() as st:
-                    t = st['complain']
+                    t = st['complain'][1:]
                     photo_path = st['photo_path']
                     photo_name = st['photo_name']
                 addr_from = MAIL_BOX
@@ -265,10 +268,11 @@ async def waitPhoto(message: types.Message, state: FSMContext):
                 msg = MIMEMultipart()
                 msg['From'] = addr_from
                 msg['To'] = addr_to
-                msg['Subject'] = f'Новая жалоба: {t[0]}'
-                body = (f'''--{t[1]}--''')
+                msg['Subject'] = f'Новая жалоба: {cat}'
+                body = ''
+                for el in t:
+                    body += f'{el}\n'
                 msg.attach(MIMEText(body, 'plain'))
-                # await asyncio.sleep(1)
                 with open(f'{photo_path}', 'rb') as fp:
                     img = MIMEImage(fp.read())
                     img.add_header('Content-Disposition', 'attachment', filename=f"{photo_name}")
@@ -331,6 +335,7 @@ async def waitText(message: types.Message, state: FSMContext):
     async with state.proxy() as st:
         pid = st['prev']
         st['complain'].append(message.text)
+        cat = st['complain'][0]
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
         next = cur.execute("""
@@ -346,8 +351,10 @@ async def waitText(message: types.Message, state: FSMContext):
             msg = MIMEMultipart()
             msg['From'] = addr_from
             msg['To'] = addr_to
-            msg['Subject'] = f'Новая жалоба: {t[0]}'
-            body = (f'''--{t[1]}--''')
+            msg['Subject'] = f'Новая жалоба: {cat}'
+            body = ''
+            for el in t:
+                body += f'{el}\n'
             msg.attach(MIMEText(body, 'plain'))
             # await asyncio.sleep(1)
             if photo_path:
