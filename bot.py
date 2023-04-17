@@ -48,9 +48,22 @@ class ComplainStates(StatesGroup):
     wait_choose = State()    
     additionals = State()
 
+def findAllIkbs(ikbs: list, id):
+    with sqlite3.connect('data.db') as db:
+        cur = db.cursor()
+        ikb = cur.execute(
+                """SELECT qid FROM tree WHERE pid IS (?) AND properties LIKE '%<additionals>' """, (id, )
+                ).fetchone()
+        if ikb:
+            ikbs.append(ikb[0])
+            return findAllIkbs(ikbs, ikb[0])
+        else:
+            return ikbs
+
 # ОБРАБОТЧИК КОМАНДЫ /start
 @dp.message_handler(commands=['start'], state=['*'])
 async def start(message: types.Message, state: FSMContext):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     await state.finish()
     with sqlite3.connect('data.db') as db:
         cur = db.cursor()
@@ -101,25 +114,61 @@ async def start(message: types.Message, state: FSMContext):
         await message.answer(text=text)
 
 
-@dp.callback_query_handler()
-async def definePath(callback: types.CallbackQuery, state: FSMContext):
-    await callback.answer()
+@dp.message_handler(Text(equals=cat_button_text), state=['*'])
+async def goCat(message: types.Message, state: FSMContext):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     await state.finish()
-    if int(callback.data) == 2:
-        async with state.proxy() as st:
-            st['start'] = int(callback.data)
-        await InfoStates.dialog.set()
-        await callback.message.answer('Пожалуйста, используй кнопки', reply_markup=InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Хорошо', callback_data='continue')))
-    elif int(callback.data) == 17:
-        async with state.proxy() as st:
-            st['start'] = int(callback.data)
-        await ComplainStates.complain.set()
-        async with state.proxy() as st:
-            st['complain'] = []
-        await callback.message.answer('Пожалуйста, следуйте инструкциям', reply_markup=InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Хорошо', callback_data='continue')))
+    with sqlite3.connect('data.db') as db:
+        cur = db.cursor()
+        # ОТБОР ID ПЕРВОГО ЭЛЕМЕНТА ИЗ БАЗЫ ДАННЫХ
+        qid, prop = cur.execute(
+            """SELECT qid, properties FROM tree WHERE pid IS NULL AND properties LIKE '<text>%' """
+            ).fetchall()[0]
+        prop = prop.split(', ')[1]
+        # КОНВЕРТАЦИЯ ID В ТЕКСТ ДЛЯ ОТПРАВКИ СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЮ
+        # ОТБОР ДОЧЕРНИХ ЭЛЕМЕНТОВ (КНОПОК)
+        bid = cur.execute(
+            """SELECT qid FROM tree WHERE pid IS (?) AND properties is '<button>' """, (qid, )
+            ).fetchall() 
+        ikbs = []
+        kbs = []
+        for id in bid:
+            # СОЗДАНИЕ СПИСКА ИНЛАЙН-КНОПОК
+            if prop == '<ikb>':
+                ikbs.append(cur.execute(
+                    """SELECT text, id FROM data WHERE id IS (?) """, (id)
+                    ).fetchone())
+            # СОЗДАНИЕ СПИСКА ОБЫЧНЫХ КНОПОК
+            elif prop == '<kb>':
+                kbs.append(cur.execute(
+                    """SELECT text FROM data WHERE id IS (?) """, (id)
+                    ).fetchone())
+    
+    # СОЗДАНИЕ КЛАВИАТУРЫ
+    if ikbs:
+        buttonsText = [button for button in ikbs] # СОЗДАНИЕ СПИСКА ТИПА [('Text', ID), ('Text', ID), ...]
+        # СОЗДАНИЕ КЛАВИАТУРЫ КЛАССА Inline
+        kb = InlineKeyboardMarkup(row_width=1
+                                  ).add(*[InlineKeyboardButton(text=text, callback_data=qid) for text, qid in buttonsText]) # ДОБАВЛЕНИЕ КНОПОК
+        await message.answer(text=choose_cat_text, reply_markup=kb)
+    elif kbs:
+        buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
+        # СОЗДАНИЕ КЛАВИАТУРЫ КЛАССА Reply
+        kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True
+                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]) #ДОБАВЛЕНИЕ КНОПОК
+        # ОТПРАВКА СООБЩЕНИЯ БОТОМ
+        await message.answer(text=choose_cat_text,
+                             reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
+    else:
+        # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
+        await message.answer(text=choose_cat_text)
+
+
+
 
 @dp.message_handler(state=ComplainStates.additionals)
 async def additionals(message: types.Message, state: FSMContext):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     async with state.proxy() as st:
         pid = st['prev']
     with sqlite3.connect('data.db') as db:
@@ -127,6 +176,8 @@ async def additionals(message: types.Message, state: FSMContext):
         pids = cur.execute(
             """SELECT qid FROM tree WHERE pid is (?) """, (pid, )
         ).fetchall()
+        if not pids:
+            return await state.finish()
         for el in pids:
             temp = cur.execute(
                 """SELECT data.id FROM data, tree WHERE data.text is (?) AND data.id IS (?) """, (message.text, el[0])
@@ -161,7 +212,7 @@ async def additionals(message: types.Message, state: FSMContext):
                 """SELECT text FROM data WHERE id IS (?) """, (id)
                 ).fetchone())
     if not text:
-        await state.finish() 
+        await state.finish()
     if kbs:
         buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
         # СОЗДАНИЕ КЛАВИАТУРЫ
@@ -173,14 +224,16 @@ async def additionals(message: types.Message, state: FSMContext):
     else:
         if prop == '<additionals>':
             await state.finish()
-        # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
-        await message.answer(text=text)
+            await message.answer(text=text, reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(cat_button))
+        else:
+            await message.answer(text=text)
         
     async with state.proxy() as st:
         st['prev'] = qid
 
 @dp.message_handler(state=ComplainStates.wait_choose)
 async def waitText(message: types.Message, state: FSMContext):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     async with state.proxy() as st:
         pid = st['prev']
     async with state.proxy() as st:
@@ -212,10 +265,14 @@ async def waitText(message: types.Message, state: FSMContext):
             """SELECT qid FROM tree WHERE pid IS (?) AND properties LIKE '<button%' """, (qid, )
             ).fetchall()
         kbs = []
-        for id in bid:
-            kbs.append(cur.execute(
-                """SELECT text FROM data WHERE id IS (?) """, (id)
-                ).fetchone())
+        if not bid:
+            texts = []
+            findAllIkbs(texts, qid)
+        else:  
+            for id in bid:
+                kbs.append(cur.execute(
+                    """SELECT text FROM data WHERE id IS (?) """, (id)
+                    ).fetchone())
     if prop == '<choosecat>':
         await ComplainStates.wait_choose.set()
     elif prop == '<waitphoto>':
@@ -226,24 +283,52 @@ async def waitText(message: types.Message, state: FSMContext):
         await ComplainStates.additionals.set()
     
     if kbs:
-        buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
-        # СОЗДАНИЕ КЛАВИАТУРЫ
+        buttonsText = [button[0] for button in kbs] 
         kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True
-                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]) # ДОБАВЛЕНИЕ КНОПОК
-        # ОТПРАВКА СООБЩЕНИЯ БОТОМ
+                                 ).add(*[KeyboardButton(text=text) for text in buttonsText])
         await message.answer(text=text,
-                             reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
+                             reply_markup=kb)
+        async with state.proxy() as st:
+                st['prev'] = qid
     else:
-        # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
-        await message.answer(text=text)
-    
-    async with state.proxy() as st:
-        st['prev'] = qid
+        if texts:
+            last_id = texts[-1]
+            with sqlite3.connect('data.db') as db:
+                cur = db.cursor()
+                bid = cur.execute("""SELECT qid FROM tree WHERE pid is (?) AND properties LIKE '<button%' """, (last_id, )).fetchall()
+            for n, text in enumerate(texts):
+                with sqlite3.connect('data.db') as db:
+                    cur = db.cursor()
+                    text = cur.execute("""SELECT text FROM data WHERE id is (?) """, (text, )).fetchone()[0]
+                texts[n] = text
+            for text in texts[:-1]:
+                await bot.send_message(chat_id=message.from_user.id, text=text)
+            kbs = []
+            if bid:
+                for id in bid:
+                    kbs.append(cur.execute(
+                        """SELECT text FROM data WHERE id IS (?) """, (id)
+                        ).fetchone())
+                buttonsText = [button[0] for button in kbs]
+                kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True
+                                 ).add(*[KeyboardButton(text=text) for text in buttonsText])
+                await message.answer(text=texts[-1], reply_markup=kb)
+                async with state.proxy() as st:
+                    st['prev'] = last_id
+            else:
+                await message.answer(text=texts[-1], reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(cat_button))
+        else:
+            if prop == '<additionals>':
+                await message.answer(text=text, reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(cat_button))
+            else:
+                await message.answer(text=text)
+            async with state.proxy() as st:
+                st['prev'] = qid
      
 
 @dp.message_handler(content_types=['any'], state=ComplainStates.wait_photo)
 async def waitPhoto(message: types.Message, state: FSMContext):
-    cure = await state.get_state()
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     async with state.proxy() as st:
         pid = st['prev']
         cat = st['complain'][0]
@@ -332,6 +417,7 @@ async def waitPhoto(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=ComplainStates.wait_text)
 async def waitText(message: types.Message, state: FSMContext):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     async with state.proxy() as st:
         pid = st['prev']
         st['complain'].append(message.text)
@@ -415,9 +501,9 @@ async def complainStart(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
     if callback.data == 'continue':
         async with state.proxy() as st:
-                search_id = st['start']
-                st['photo_path'] = None
-                st['photo_name'] = None
+            search_id = st['start']
+            st['photo_path'] = None
+            st['photo_name'] = None
     else:
         search_id = callback.data
     with sqlite3.connect('data.db') as db:
@@ -447,7 +533,8 @@ async def complainStart(callback: types.CallbackQuery, state: FSMContext):
         await ComplainStates.wait_photo.set()
     elif prop == '<waittext>':
         await ComplainStates.wait_text.set()
-
+    elif prop == '<additionals>':
+        await ComplainStates.additionals.set()
     if kbs:
         buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
         # СОЗДАНИЕ КЛАВИАТУРЫ
@@ -457,8 +544,11 @@ async def complainStart(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.answer(text=text,
                                       reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
     else:
-        # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
-        await callback.message.answer(text=text)
+        await state.finish()
+        if prop == '<additionals>':
+            await callback.message.answer(text=text, reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(cat_button))
+        else:
+            await callback.message.answer(text=text)
     async with state.proxy() as st:
         st['prev'] = qid
 
@@ -525,56 +615,9 @@ async def dialog(callback: types.CallbackQuery, state: FSMContext):
         st['prev'] = qid
 
 
-@dp.message_handler(Text(equals=cat_button_text), state=InfoStates.dialog)
-async def goCat(message: types.Message, state: FSMContext):
-    await state.finish()
-    with sqlite3.connect('data.db') as db:
-        cur = db.cursor()
-        # ОТБОР ID ПЕРВОГО ЭЛЕМЕНТА ИЗ БАЗЫ ДАННЫХ
-        qid, prop = cur.execute(
-            """SELECT qid, properties FROM tree WHERE pid IS NULL AND properties LIKE '<text>%' """
-            ).fetchall()[0]
-        prop = prop.split(', ')[1]
-        # КОНВЕРТАЦИЯ ID В ТЕКСТ ДЛЯ ОТПРАВКИ СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЮ
-        # ОТБОР ДОЧЕРНИХ ЭЛЕМЕНТОВ (КНОПОК)
-        bid = cur.execute(
-            """SELECT qid FROM tree WHERE pid IS (?) AND properties is '<button>' """, (qid, )
-            ).fetchall() 
-        ikbs = []
-        kbs = []
-        for id in bid:
-            # СОЗДАНИЕ СПИСКА ИНЛАЙН-КНОПОК
-            if prop == '<ikb>':
-                ikbs.append(cur.execute(
-                    """SELECT text, id FROM data WHERE id IS (?) """, (id)
-                    ).fetchone())
-            # СОЗДАНИЕ СПИСКА ОБЫЧНЫХ КНОПОК
-            elif prop == '<kb>':
-                kbs.append(cur.execute(
-                    """SELECT text FROM data WHERE id IS (?) """, (id)
-                    ).fetchone())
-    
-    # СОЗДАНИЕ КЛАВИАТУРЫ
-    if ikbs:
-        buttonsText = [button for button in ikbs] # СОЗДАНИЕ СПИСКА ТИПА [('Text', ID), ('Text', ID), ...]
-        # СОЗДАНИЕ КЛАВИАТУРЫ КЛАССА Inline
-        kb = InlineKeyboardMarkup(row_width=1
-                                  ).add(*[InlineKeyboardButton(text=text, callback_data=qid) for text, qid in buttonsText]) # ДОБАВЛЕНИЕ КНОПОК
-        await message.answer(text=choose_cat_text, reply_markup=kb)
-    elif kbs:
-        buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
-        # СОЗДАНИЕ КЛАВИАТУРЫ КЛАССА Reply
-        kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True
-                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]) #ДОБАВЛЕНИЕ КНОПОК
-        # ОТПРАВКА СООБЩЕНИЯ БОТОМ
-        await message.answer(text=choose_cat_text,
-                             reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
-    else:
-        # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
-        await message.answer(text=choose_cat_text)
-
 @dp.message_handler(Text(equals=back_button_text), state=InfoStates.dialog)
 async def goBack(message: types.Message, state: FSMContext):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     async with state.proxy() as st:
         pid = st['prev']
     with sqlite3.connect('data.db') as db:
@@ -605,6 +648,7 @@ async def goBack(message: types.Message, state: FSMContext):
 # ОБРАБОТЧИК ТЕКСТОВОГО СООБЩЕНИЯ
 @dp.message_handler(state=InfoStates.dialog)
 async def dialog(message: types.Message, state: FSMContext):
+    await bot.send_chat_action(chat_id=message.from_user.id, action='typing')
     async with state.proxy() as st:
         pid = st['prev']
     with sqlite3.connect('data.db') as db:
@@ -670,6 +714,25 @@ async def dialog(message: types.Message, state: FSMContext):
         await message.answer(text=text)
     async with state.proxy() as st:
         st['prev'] = qid
+
+
+@dp.callback_query_handler()
+async def definePath(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.finish()
+    if int(callback.data) == 2:
+        async with state.proxy() as st:
+            st['start'] = int(callback.data)
+        await InfoStates.dialog.set()
+        await callback.message.answer('Пожалуйста, используй кнопки', reply_markup=InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Хорошо', callback_data='continue')))
+    elif int(callback.data) == 17:
+        async with state.proxy() as st:
+            st['start'] = int(callback.data)
+        await ComplainStates.complain.set()
+        async with state.proxy() as st:
+            st['complain'] = []
+        await callback.message.answer('Пожалуйста, следуйте инструкциям', reply_markup=InlineKeyboardMarkup(row_width=1).add(InlineKeyboardButton(text='Хорошо', callback_data='continue')))
+
 
 
 if __name__ == '__main__':
