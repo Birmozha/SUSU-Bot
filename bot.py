@@ -705,13 +705,13 @@ async def dialog(message: types.Message, state: FSMContext):
         buttonsText = [button[0] for button in kbs] # СОЗДАНИЕ СПИСКА ТИПА ['Text', 'Text', ...]
         # СОЗДАНИЕ КЛАВИАТУРЫ
         kb = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=1
-                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]).add(back_button).add(cat_button) # ДОБАВЛЕНИЕ КНОПОК
+                                 ).add(*[KeyboardButton(text=text) for text in buttonsText]).add(back_button) # ДОБАВЛЕНИЕ КНОПОК
         # ОТПРАВКА СООБЩЕНИЯ БОТОМ
         await message.answer(text=text,
                              reply_markup=kb) # ПЕРЕДАЧА КЛАВИТАУРЫ В TELEGRAM
     else:
         # ОТПРАВКА СООБЩЕНИЯ БОТОМ, ЕСЛИ КНОПОК НЕТ
-        await message.answer(text=text)
+        await message.answer(text=text, reply_markup=ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).add(cat_button))
     async with state.proxy() as st:
         st['prev'] = qid
 
